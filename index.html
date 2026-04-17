@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vitrine Local - Comparador de Ofertas</title>
+
+    <!-- Scripts de Dependências -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+        }
+
+        .offer-gradient {
+            background: linear-gradient(135deg, #FF5F6D 0%, #FFC371 100%);
+        }
+
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900 min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+
+        // --- MOCK DATA ---
+        const STORES = [
+            { id: 's1', name: 'Farmácia Vida', type: 'Farmácia', rating: 4.8, delivery: '15-30 min', fee: 'Grátis', distance: 0.8, image: 'https://images.unsplash.com/photo-1586015555751-63bb77f4322a?w=400' },
+            { id: 's2', name: 'Padaria Central', type: 'Padaria', rating: 4.9, delivery: '10-20 min', fee: 'R$ 3,50', distance: 1.2, image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400' },
+            { id: 's3', name: 'Mercado do Bairro', type: 'Mercado', rating: 4.5, delivery: '30-45 min', fee: 'R$ 5,00', distance: 2.5, image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400' },
+            { id: 's4', name: 'Drogaria Express', type: 'Farmácia', rating: 4.7, delivery: '20-35 min', fee: 'R$ 2,00', distance: 1.5, image: 'https://images.unsplash.com/photo-1587854692152-cbe660dbbb88?w=400' },
+            { id: 's5', name: 'Pão de Ouro', type: 'Padaria', rating: 4.6, delivery: '15-25 min', fee: 'R$ 4,00', distance: 0.5, image: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400' },
+            { id: 's6', name: 'Farmácia Sebastião', type: 'Farmácia', rating: 4.6, delivery: '25-40 min', fee: 'Grátis', distance: 3.2, image: 'https://images.unsplash.com/photo-1631549916768-4119b2e5f926?w=400' },
+            { id: 's7', name: 'Supermercado Extra', type: 'Mercado', rating: 4.3, delivery: '40-60 min', fee: 'R$ 8,00', distance: 4.5, image: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=400' },
+            { id: 's8', name: 'Empório Natural', type: 'Mercado', rating: 4.9, delivery: '20-30 min', fee: 'R$ 5,00', distance: 1.8, image: 'https://images.unsplash.com/photo-1534723452862-4c874018d66d?w=400' }
+        ];
+
+        const PRODUCTS = [
+            {
+                id: 'p1', name: 'Dipirona 500mg', category: 'Farmácia', image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400',
+                variants: [
+                    { storeId: 's1', price: 10.00, oldPrice: 12.00 },
+                    { storeId: 's6', price: 8.00, oldPrice: 15.00, isOffer: true },
+                    { storeId: 's4', price: 11.50 }
+                ]
+            },
+            {
+                id: 'p2', name: 'Pão Francês (kg)', category: 'Padaria', image: 'https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=400',
+                variants: [
+                    { storeId: 's2', price: 16.00, oldPrice: 19.50, isOffer: true },
+                    { storeId: 's5', price: 17.50 }
+                ]
+            },
+            {
+                id: 'p3', name: 'Leite Integral 1L', category: 'Mercado', image: 'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400',
+                variants: [
+                    { storeId: 's3', price: 4.80 },
+                    { storeId: 's5', price: 5.20 },
+                    { storeId: 's7', price: 4.50, isOffer: true }
+                ]
+            },
+            {
+                id: 'p4', name: 'Café Melitta 500g', category: 'Mercado', image: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=400',
+                variants: [
+                    { storeId: 's3', price: 18.90, oldPrice: 22.00, isOffer: true },
+                    { storeId: 's7', price: 19.50 }
+                ]
+            },
+            {
+                id: 'p5', name: 'Vitamina C 1g', category: 'Farmácia', image: 'https://images.unsplash.com/photo-1576602976047-174e57a47881?w=400',
+                variants: [
+                    { storeId: 's1', price: 15.00 },
+                    { storeId: 's6', price: 12.50, isOffer: true }
+                ]
+            },
+            {
+                id: 'p6', name: 'Bolo de Cenoura', category: 'Padaria', image: 'https://images.unsplash.com/photo-1587314168485-3236d6710814?w=400',
+                variants: [
+                    { storeId: 's2', price: 25.00, oldPrice: 30.00, isOffer: true },
+                    { storeId: 's5', price: 28.00 }
+                ]
+            },
+            {
+                id: 'p7', name: 'Maçã Fuji (kg)', category: 'Mercado', image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=400',
+                variants: [
+                    { storeId: 's3', price: 8.50 },
+                    { storeId: 's7', price: 9.90 },
+                    { storeId: 's8', price: 12.00 }
+                ]
+            },
+            {
+                id: 'p8', name: 'Shampoo Clear Men', category: 'Farmácia', image: 'https://images.unsplash.com/photo-1631729371254-42c2892f0e6e?w=400',
+                variants: [
+                    { storeId: 's4', price: 22.00 },
+                    { storeId: 's1', price: 24.50 },
+                    { storeId: 's7', price: 20.90, oldPrice: 25.00, isOffer: true }
+                ]
+            }
+        ];
+
+        const Icon = ({ name }) => {
+            const icons = {
+                search: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>,
+                pin: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
+                star: <svg className="w-3 h-3 text-amber-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>,
+                bag: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>,
+                arrowLeft: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+            };
+            return icons[name] || null;
+        };
+
+        const App = () => {
+            const [search, setSearch] = useState('');
+            const [activeCategory, setActiveCategory] = useState('Todas');
+            const [sortBy, setSortBy] = useState('price');
+
+            // Navigation state
+            const [view, setView] = useState('home'); // 'home' | 'product' | 'store'
+            const [selectedItem, setSelectedItem] = useState(null);
+            const [selectedStore, setSelectedStore] = useState(null);
+
+            const openProduct = (item) => {
+                setSelectedItem(item);
+                setView('product');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            const openStore = (storeId, e) => {
+                if(e) e.stopPropagation();
+                const store = STORES.find(s => s.id === storeId);
+                setSelectedStore(store);
+                setView('store');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            const goHome = () => {
+                setView('home');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            const displayItems = useMemo(() => {
+                let items = [];
+                PRODUCTS.forEach(p => {
+                    const globalBestPrice = Math.min(...p.variants.map(v => v.price));
+
+                    p.variants.forEach(v => {
+                        const store = STORES.find(s => s.id === v.storeId);
+                        const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
+                        const matchesCat = activeCategory === 'Todas' || p.category === activeCategory;
+
+                        if (matchesSearch && matchesCat) {
+                            items.push({
+                                ...p,
+                                currentVariant: v,
+                                currentStore: store,
+                                isBestPrice: v.price === globalBestPrice
+                            });
+                        }
+                    });
+                });
+
+                return items.sort((a, b) => {
+                    if (sortBy === 'price') return a.currentVariant.price - b.currentVariant.price;
+                    if (sortBy === 'distance') return a.currentStore.distance - b.currentStore.distance;
+                    return 0;
+                });
+            }, [search, activeCategory, sortBy]);
+
+            const renderProductPage = () => {
+                if(!selectedItem) return null;
+                const otherVariants = selectedItem.variants.filter(v => v.storeId !== selectedItem.currentStore.id);
+
+                return (
+                    <main className="max-w-5xl mx-auto px-4 mt-8 md:mt-12 animate-fade-in pb-20">
+                        <button onClick={goHome} className="flex items-center gap-2 text-indigo-600 font-bold mb-8 hover:!opacity-80 transition-opacity p-2 -ml-2 rounded-xl hover:bg-slate-100">
+                            <Icon name="arrowLeft" /> Voltar para vitrine
+                        </button>
+                        
+                        <div className="bg-white rounded-[2.5rem] p-6 md:p-10 shadow-sm border border-slate-100 flex flex-col md:flex-row gap-8 md:gap-16">
+                            <div className="md:w-1/2">
+                                <div className="aspect-square bg-slate-50 rounded-[2rem] overflow-hidden isolate border border-slate-100">
+                                    <img src={selectedItem.image} className="w-full h-full object-cover" />
+                                </div>
+                            </div>
+                            <div className="md:w-1/2 flex flex-col pt-2 md:pt-4">
+                                <div className="text-sm font-bold text-indigo-500 mb-3 tracking-wide uppercase">{selectedItem.category}</div>
+                                <h1 className="text-3xl md:text-5xl font-black text-slate-900 mb-8 leading-tight">{selectedItem.name}</h1>
+                                
+                                <div 
+                                    className="p-5 bg-slate-50 rounded-3xl mb-8 cursor-pointer hover:bg-indigo-50/50 transition-colors border border-transparent hover:border-indigo-100 group"
+                                    onClick={(e) => openStore(selectedItem.currentStore.id, e)}
+                                >
+                                    <div className="text-[10px] font-black text-slate-400 mb-3 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">Vendido por</div>
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-2xl bg-white shadow-sm text-indigo-600 flex items-center justify-center shrink-0 overflow-hidden isolate group-hover:scale-105 transition-transform">
+                                            <img src={selectedItem.currentStore.image} className="w-full h-full object-cover" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="font-extrabold text-slate-800 text-lg">{selectedItem.currentStore.name}</div>
+                                            <div className="flex items-center gap-2 text-xs text-slate-500 font-medium mt-1">
+                                                <span className="flex items-center gap-0.5 text-amber-500"><Icon name="star" /> {selectedItem.currentStore.rating}</span>
+                                                <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                                                <span><span className="font-bold">{selectedItem.currentStore.distance} km</span> de você</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-auto pt-8 border-t border-slate-100">
+                                    {selectedItem.currentVariant.oldPrice && <div className="text-slate-400 line-through font-medium mb-1">R$ {selectedItem.currentVariant.oldPrice.toFixed(2).replace('.',',')}</div>}
+                                    <div className="flex flex-col mb-8">
+                                        <span className="text-5xl font-black text-indigo-600 leading-none tracking-tight">
+                                            <span className="text-2xl font-bold align-top mt-1 mr-1">R$</span>{selectedItem.currentVariant.price.toFixed(2).replace('.', ',')}
+                                        </span>
+                                        {selectedItem.isBestPrice && <div className="mt-3 w-fit bg-amber-100 text-amber-700 text-xs font-black px-3 py-1.5 rounded-lg border border-amber-200">MELHOR OPÇÃO</div>}
+                                    </div>
+                                    <button className="w-full py-5 bg-slate-900 text-white rounded-2xl font-extrabold text-lg hover:bg-indigo-600 transition-colors shadow-xl shadow-slate-900/10">
+                                        Adicionar ao Carrinho
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {otherVariants.length > 0 && (
+                            <div className="mt-14 max-w-2xl">
+                                <h3 className="text-2xl font-extrabold text-slate-900 mb-6">Também disponível em ({otherVariants.length})</h3>
+                                <div className="flex flex-col gap-4">
+                                    {otherVariants.map((v, i) => {
+                                        const st = STORES.find(s => s.id === v.storeId);
+                                        return (
+                                            <div key={i} className="flex items-center justify-between p-5 bg-white rounded-3xl border border-slate-100 shadow-sm cursor-pointer hover:border-indigo-300 hover:shadow-md transition-all group" onClick={() => openStore(st.id)}>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="h-14 w-14 rounded-2xl overflow-hidden shrink-0 bg-slate-100 isolate border border-slate-100 group-hover:scale-105 transition-transform">
+                                                        <img src={st.image} className="w-full h-full object-cover" />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-extrabold text-slate-800 text-lg">{st.name}</h4>
+                                                        <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium mt-1">
+                                                            <span className="flex items-center text-amber-500"><Icon name="star" /> {st.rating}</span>
+                                                            <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
+                                                            <span>{st.distance} km</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-2xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors">
+                                                        <span className="text-sm">R$</span> {v.price.toFixed(2).replace('.',',')}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </main>
+                )
+            };
+
+            const renderStorePage = () => {
+                if(!selectedStore) return null;
+                const storeProducts = PRODUCTS.reduce((acc, p) => {
+                    const variant = p.variants.find(v => v.storeId === selectedStore.id);
+                    if(variant) {
+                       const globalBestPrice = Math.min(...p.variants.map(varnt => varnt.price));
+                       acc.push({...p, currentVariant: variant, currentStore: selectedStore, isBestPrice: variant.price === globalBestPrice});
+                    }
+                    return acc;
+                }, []);
+
+                return (
+                    <main className="max-w-7xl mx-auto px-4 mt-8 md:mt-12 animate-fade-in pb-20">
+                        <button onClick={goHome} className="flex items-center gap-2 text-indigo-600 font-bold mb-8 hover:!opacity-80 transition-opacity p-2 -ml-2 rounded-xl hover:bg-slate-100">
+                            <Icon name="arrowLeft" /> Voltar para vitrine
+                        </button>
+
+                        <div className="relative rounded-[2.5rem] overflow-hidden bg-slate-900 text-white p-8 md:p-12 mb-12 shadow-lg h-64 md:h-80 flex items-end isolate">
+                            <div className="absolute inset-0 opacity-40">
+                                <img src={selectedStore.image} className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/80 to-transparent"></div>
+                            </div>
+                            <div className="relative z-10 flex items-center justify-between w-full">
+                                <div>
+                                    <div className="text-indigo-300 font-bold text-sm tracking-widest uppercase mb-3 px-3 py-1 bg-white/10 w-fit rounded-full backdrop-blur-sm">{selectedStore.type}</div>
+                                    <h1 className="text-4xl md:text-6xl font-black mb-5 tracking-tight">{selectedStore.name}</h1>
+                                    <div className="flex flex-wrap items-center gap-4 text-sm md:text-base font-medium text-slate-200">
+                                        <span className="flex items-center gap-1.5 text-amber-400 font-bold"><Icon name="star" /> {selectedStore.rating} Avaliações</span>
+                                        <span className="w-1.5 h-1.5 bg-white/30 rounded-full hidden md:block"></span>
+                                        <span className="flex items-center gap-1.5"><Icon name="pin" /> {selectedStore.distance} km de você</span>
+                                        <span className="w-1.5 h-1.5 bg-white/30 rounded-full hidden md:block"></span>
+                                        <span>Entrega: {selectedStore.fee} ({selectedStore.delivery})</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h3 className="text-3xl font-extrabold text-slate-900 mb-8">Todos os Produtos ({storeProducts.length})</h3>
+                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 md:gap-8">
+                            {storeProducts.map((item, idx) => (
+                                <div key={idx} onClick={() => openProduct(item)} className={`bg-white rounded-[2rem] p-5 shadow-sm border transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer group ${item.isBestPrice ? 'border-indigo-200/60 ring-4 ring-indigo-50/50' : 'border-slate-100 hover:border-indigo-100'}`}>
+                                    <div className="relative aspect-square rounded-[1.5rem] overflow-hidden mb-5 bg-slate-50 isolate">
+                                        <img src={item.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        {item.currentVariant.isOffer && (
+                                            <div className="absolute top-3 left-3 px-3 py-1.5 offer-gradient text-white text-xs font-bold rounded-xl shadow-lg">OFERTA</div>
+                                        )}
+                                    </div>
+                                    <div className="px-1">
+                                        <h3 className="font-extrabold text-slate-800 text-lg line-clamp-2 mb-4">{item.name}</h3>
+                                        <div className="flex items-end justify-between pt-2">
+                                            <div className="flex flex-col">
+                                                {item.currentVariant.oldPrice && <span className="text-xs text-slate-400 line-through font-medium mb-0.5">R$ {item.currentVariant.oldPrice.toFixed(2).replace('.', ',')}</span>}
+                                                <span className="text-2xl font-black text-slate-900 tracking-tight leading-none group-hover:text-indigo-600 transition-colors">
+                                                    <span className="text-sm font-bold text-slate-500 mr-0.5 mt-1">R$</span>
+                                                    {item.currentVariant.price.toFixed(2).replace('.', ',')}
+                                                </span>
+                                            </div>
+                                             {item.isBestPrice && <div className="bg-indigo-600 text-white text-[10px] uppercase font-black px-2.5 py-1.5 rounded-xl shadow-md border border-indigo-500">Melhor Preço</div>}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </main>
+                );
+            };
+
+            const renderHome = () => (
+                <main className="max-w-7xl mx-auto px-4 mt-10 md:mt-14 animate-fade-in pb-20">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 md:mb-12">
+                        <div>
+                            <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-3">
+                                Escolha a <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-rose-500">melhor oferta</span>
+                            </h2>
+                            <p className="text-slate-500 font-medium md:text-lg">Comparamos os preços dos comércios perto de você.</p>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-10 bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
+                        <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
+                            {['Todas', 'Farmácia', 'Padaria', 'Mercado'].map(cat => (
+                                <button 
+                                    key={cat}
+                                    onClick={() => setActiveCategory(cat)}
+                                    className={`px-7 py-3 rounded-2xl font-bold transition-all whitespace-nowrap text-sm ${activeCategory === cat ? 'bg-slate-900 text-white shadow-md scale-100' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:scale-[1.02]'}`}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
+                        
+                        <div className="flex items-center bg-slate-50 p-1.5 rounded-2xl w-fit shrink-0">
+                            <button onClick={() => setSortBy('price')} className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${sortBy === 'price' ? 'bg-white text-indigo-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-700'}`}>
+                                Melhor Preço
+                            </button>
+                            <button onClick={() => setSortBy('distance')} className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${sortBy === 'distance' ? 'bg-white text-indigo-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-700'}`}>
+                                <Icon name="pin" /> Mais Próximo
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 md:gap-8">
+                        {displayItems.length > 0 ? displayItems.map((item, idx) => (
+                            <div key={idx} onClick={() => openProduct(item)} className={`cursor-pointer bg-white rounded-[2rem] p-5 shadow-sm border transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group ${item.isBestPrice ? 'border-indigo-200/60 ring-4 ring-indigo-50/50' : 'border-slate-100 hover:border-indigo-100'}`}>
+                                <div className="relative aspect-square rounded-[1.5rem] overflow-hidden mb-5 bg-slate-50 isolate">
+                                    <img src={item.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                    {item.currentVariant.isOffer && (
+                                        <div className="absolute top-3 left-3 px-3 py-1.5 offer-gradient text-white text-xs font-bold rounded-xl shadow-lg z-10">OFERTA</div>
+                                    )}
+                                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2.5 py-1.5 rounded-xl text-xs font-black text-slate-700 shadow-sm flex items-center gap-1 z-10">
+                                        <Icon name="star" /> {item.currentStore.rating}
+                                    </div>
+                                </div>
+                                
+                                <div className="px-1">
+                                    <h3 className="font-extrabold text-slate-800 text-lg line-clamp-1 mb-2 group-hover:text-indigo-600 transition-colors">{item.name}</h3>
+                                    
+                                    <div 
+                                        className="flex flex-col gap-1.5 mb-4 p-3 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors border border-transparent"
+                                        onClick={(e) => openStore(item.currentStore.id, e)}
+                                    >
+                                        <div className="flex items-center gap-2 text-xs">
+                                            <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                                                <Icon name="bag" />
+                                            </div>
+                                            <span className="font-bold text-slate-700 truncate">{item.currentStore.name}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-semibold pl-7">
+                                            <span>{item.currentStore.distance} km</span>
+                                            <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                                            <span>{item.currentStore.delivery}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-end justify-between pt-2 border-t border-slate-100">
+                                        <div className="flex flex-col">
+                                            {item.currentVariant.oldPrice && <span className="text-xs text-slate-400 line-through font-medium mb-0.5">R$ {item.currentVariant.oldPrice.toFixed(2).replace('.', ',')}</span>}
+                                            <span className="text-2xl font-black text-slate-900 tracking-tight leading-none">
+                                                <span className="text-sm font-bold text-slate-500 mr-0.5 mt-1">R$</span>
+                                                {item.currentVariant.price.toFixed(2).replace('.', ',')}
+                                            </span>
+                                        </div>
+                                        {item.isBestPrice && <div className="bg-indigo-600 text-white text-[10px] uppercase font-black px-2.5 py-1.5 rounded-xl shadow-md border border-indigo-500">O Melhor Preço</div>}
+                                    </div>
+                                </div>
+                            </div>
+                        )) : (
+                            <div className="col-span-full py-20 text-center flex flex-col items-center">
+                                <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center text-slate-300 mb-4">
+                                    <Icon name="search" />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-700">Nenhum produto encontrado</h3>
+                                <p className="text-slate-500 mt-2">Tente buscar por outra palavra-chave ou limpe os filtros.</p>
+                            </div>
+                        )}
+                    </div>
+                </main>
+            );
+
+            return (
+                <div className="pb-10 bg-slate-50 min-h-screen font-sans">
+                    <header className="sticky top-0 z-50 glass border-b border-slate-200 px-4 py-4 md:py-6 shadow-sm">
+                        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-4 md:gap-8">
+                            <div className="flex items-center gap-3 w-full md:w-auto cursor-pointer" onClick={goHome}>
+                                <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-2.5 rounded-2xl text-white shadow-lg shadow-indigo-200 cursor-pointer">
+                                    <Icon name="bag" />
+                                </div>
+                                <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-800">
+                                    Vitrine<span className="text-indigo-600">Local</span>
+                                </h1>
+                            </div>
+                            
+                            {view === 'home' && (
+                                <div className="relative flex-1 w-full max-w-2xl group animate-fade-in">
+                                    <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
+                                        <Icon name="search" />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="Encontre Dipirona, Pão, Leite..."
+                                        className="w-full bg-white border border-slate-200 hover:border-indigo-300 rounded-3xl py-4 pl-14 pr-6 outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700 placeholder-slate-400 shadow-sm"
+                                        onChange={(e) => setSearch(e.target.value)}
+                                        value={search}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </header>
+
+                    {view === 'home' && renderHome()}
+                    {view === 'product' && renderProductPage()}
+                    {view === 'store' && renderStorePage()}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
