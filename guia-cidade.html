@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Guia PWA - Cidade Inteligente</title>
+
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in-out forwards;
+        }
+
+        .animate-slide-up {
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Modern Glass Effect */
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-slate-900 min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo, useEffect } = React;
+
+        // ==========================================
+        // MOCK DATABASE
+        // ==========================================
+        const CATEGORIES = [
+            { id: 'c1', name: 'Alimentação', icon: 'utensils', color: 'bg-orange-100 text-orange-600' },
+            { id: 'c2', name: 'Beleza', icon: 'scissors', color: 'bg-purple-100 text-purple-600' },
+            { id: 'c3', name: 'Mercados', icon: 'shopping-cart', color: 'bg-emerald-100 text-emerald-600' },
+            { id: 'c4', name: 'Pet Shops', icon: 'paw', color: 'bg-blue-100 text-blue-600' },
+            { id: 'c5', name: 'Farmácias', icon: 'pill', color: 'bg-rose-100 text-rose-600' },
+            { id: 'c6', name: 'Serviços', icon: 'wrench', color: 'bg-slate-200 text-slate-700' }
+        ];
+
+        const STORES = [
+            {
+                id: 's1', categoryId: 'c1', name: 'Brasa & Fogo Churrascaria', rating: 4.8,
+                logo: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=200&h=200&fit=crop',
+                cover: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=800',
+                address: 'Av. das Nações, 1500 - Centro', whatsapp: '5548991097926',
+                isOpen: true, isFeatured: true, isRecent: false,
+                desc: 'O melhor churrasco e carnes nobres da região, servido em um ambiente sofisticado.'
+            },
+            {
+                id: 's2', categoryId: 'c2', name: 'Studio Vintage Hair', rating: 4.9,
+                logo: 'https://images.unsplash.com/photo-1521590832167-7bfcfaa6362f?w=200&h=200&fit=crop',
+                cover: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800',
+                address: 'Rua das Flores, 42', whatsapp: '5548991097926',
+                isOpen: false, isFeatured: true, isRecent: false,
+                desc: 'Salão unissex focado em cortes modernos, coloração premium e spa capilar.'
+            },
+            {
+                id: 's3', categoryId: 'c3', name: 'SuperMercado Ideal', rating: 4.5,
+                logo: 'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?w=200&h=200&fit=crop',
+                cover: 'https://images.unsplash.com/photo-1534723452862-4c874018d66d?w=800',
+                address: 'Praça Central, S/N', whatsapp: '5548991097926',
+                isOpen: true, isFeatured: false, isRecent: true,
+                desc: 'Preço baixo todo dia. Entregamos compras completas direto no seu porta-malas.'
+            },
+            {
+                id: 's4', categoryId: 'c1', name: 'Sushi Zen Omakase', rating: 5.0,
+                logo: 'https://images.unsplash.com/photo-1553621042-f6e147245754?w=200&h=200&fit=crop',
+                cover: 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=800',
+                address: 'Av. Paulista, 1000', whatsapp: '5548991097926',
+                isOpen: true, isFeatured: true, isRecent: true,
+                desc: 'Culinária tradicional japonesa com ingredientes frescos levados à máxima pureza.'
+            },
+            {
+                id: 's5', categoryId: 'c1', name: 'Napoli Pizza Artesanal', rating: 4.7,
+                logo: 'https://images.unsplash.com/photo-1590947132387-155cc02f3212?w=200&h=200&fit=crop',
+                cover: 'https://images.unsplash.com/photo-1513104890d38-7c0f4fff45f1?w=800',
+                address: 'Rua Itália, 88', whatsapp: '5548991097926',
+                isOpen: true, isFeatured: true, isRecent: false,
+                desc: 'Pizzas napolitanas assadas no forno a lenha, com fermentação longa e natural.'
+            },
+            {
+                id: 's6', categoryId: 'c5', name: 'Drogaria Esperança', rating: 4.3,
+                logo: 'https://images.unsplash.com/photo-1576602976047-174e57a47881?w=200&h=200&fit=crop',
+                cover: 'https://images.unsplash.com/photo-1631549916768-4119b2e5f926?w=800',
+                address: 'Av. Saúde, 101', whatsapp: '5548991097926',
+                isOpen: true, isFeatured: false, isRecent: true,
+                desc: 'Aberto 24 horas. Entregamos medicamentos urgentes em até 30 minutos.'
+            },
+            {
+                id: 's7', categoryId: 'c4', name: 'Banho & Tosa PetLove', rating: 4.9,
+                logo: 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=200&h=200&fit=crop',
+                cover: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=800',
+                address: 'Rua dos Pets, 12', whatsapp: '5548991097926',
+                isOpen: false, isFeatured: true, isRecent: false,
+                desc: 'Estética animal com profissionais qualificados e produtos antialérgicos.'
+            },
+            {
+                id: 's8', categoryId: 'c2', name: 'Dermatologia Avançada', rating: 5.0,
+                logo: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=200&h=200&fit=crop',
+                cover: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800',
+                address: 'Edifício Infinity, Sala 400', whatsapp: '5548991097926',
+                isOpen: true, isFeatured: false, isRecent: true,
+                desc: 'Clínica de estética especializada em harmonização fácil e cuidados da pele.'
+            },
+            {
+                id: 's9', categoryId: 'c6', name: 'Oficina do João Motores', rating: 4.6,
+                logo: 'https://images.unsplash.com/photo-1493238792000-8113da705763?w=200&h=200&fit=crop',
+                cover: 'https://images.unsplash.com/photo-1503376713914-722de3be921f?w=800',
+                address: 'Rua das Bielas, 98', whatsapp: '5548991097926',
+                isOpen: true, isFeatured: false, isRecent: false,
+                desc: 'Mecânica em geral, injeção eletrônica e troca de óleo rápida.'
+            },
+            {
+                id: 's10', categoryId: 'c3', name: 'Hortifruti da Terra', rating: 4.8,
+                logo: 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?w=200&h=200&fit=crop',
+                cover: 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=800',
+                address: 'Largo da Matriz, S/N', whatsapp: '5548991097926',
+                isOpen: false, isFeatured: true, isRecent: true,
+                desc: 'Produtos orgânicos direto do produtor. Frutas, legumes e verduras fresquinhos.'
+            }
+        ];
+
+        const PRODUCTS = [
+            { id: 'p1', storeId: 's1', name: 'Picanha Premium 500g', price: 95.00, desc: 'Acompanha arroz biro-biro, farofa e vinagrete. Serve 2 pessoas.', image: 'https://images.unsplash.com/photo-1594046243098-0fce8af10cad?w=300' },
+            { id: 'p2', storeId: 's1', name: 'Bife Ancho Angus', price: 89.90, desc: 'Corte super macio e marmorizado, assado na parilla.', image: 'https://images.unsplash.com/photo-1600891964092-4316c288032e?w=300' },
+            { id: 'p3', storeId: 's2', name: 'Corte + Barba', price: 75.00, desc: 'Tratamento VIP com navalha quente e hidratação.', image: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=300' },
+            { id: 'p4', storeId: 's3', name: 'Cesta Básica Completa', price: 145.50, desc: 'Itens essenciais selecionados (Arroz, feijão, óleo, leite...).', image: 'https://images.unsplash.com/photo-1588611186708-3bbdef0d2204?w=300' },
+            { id: 'p5', storeId: 's4', name: 'Combo Salmão (20 peças)', price: 68.00, desc: 'Sashimis, niguiris e uramakis variados 100% salmão fresco.', image: 'https://images.unsplash.com/photo-1611143660185-cbc9a941b50e?w=300' },
+            { id: 'p6', storeId: 's5', name: 'Pizza Margherita', price: 55.00, desc: 'Massa artesanal, molho pelati e mozzarella.', image: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=300' },
+            { id: 'p7', storeId: 's5', name: 'Pizza Calabresa', price: 52.00, desc: 'Calabresa artesanal curtida e azeitonas.', image: 'https://images.unsplash.com/photo-1534308983496-4fabb1a015ce?w=300' },
+            { id: 'p8', storeId: 's6', name: 'Dipirona Sódica 500mg', price: 8.50, desc: 'Caixa com 30 comprimidos.', image: 'https://images.unsplash.com/photo-1584308666744-24d5e47854f3?w=300' },
+            { id: 'p9', storeId: 's6', name: 'Vitamina C 1g', price: 15.90, desc: '10 comprimidos efervescentes.', image: 'https://images.unsplash.com/photo-1624462966581-bc5d764cb611?w=300' },
+            { id: 'p10', storeId: 's7', name: 'Banho Premium Cães', price: 60.00, desc: 'Inclui tosa higiênica e corte de unhas.', image: 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=300' },
+            { id: 'p11', storeId: 's8', name: 'Limpeza de Pele Profunda', price: 120.00, desc: 'Remoção de cravos, extração e máscara calmante.', image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=300' },
+            { id: 'p12', storeId: 's9', name: 'Revisão de Freios', price: 150.00, desc: 'Troca de pastilhas e verificação do fluido.', image: 'https://images.unsplash.com/photo-1493238792000-8113da705763?w=300' },
+            { id: 'p13', storeId: 's10', name: 'Kit Orgânico Semanal', price: 45.00, desc: 'Mix com maçã, banana, alface, tomate e cenoura.', image: 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?w=300' },
+            { id: 'p14', storeId: 's4', name: 'Temaki de Salmão', price: 28.00, desc: 'Alga crocante com arroz e salmão com cream cheese.', image: 'https://images.unsplash.com/photo-1541580628282-3e2b26090c2f?w=300' },
+            { id: 'p15', storeId: 's1', name: 'Porção de Fritas com Bacon', price: 35.00, desc: 'Batatas rústicas com cheddar e bacon.', image: 'https://images.unsplash.com/photo-1576107232684-1279f3908581?w=300' },
+            { id: 'p16', storeId: 's3', name: 'Leite Integral 1L', price: 4.99, desc: 'Leite de caixinha marca X.', image: 'https://images.unsplash.com/photo-1550583724-b2692bcffdd8?w=300' }
+        ];
+
+        const REVIEWS = [
+            { id: 'r1', storeId: 's1', user: 'Fernanda M.', rating: 5, date: 'Há 2 dias', text: 'Melhor picanha que já comi! O ponto da carne veio exatinho como pedi.' },
+            { id: 'r2', storeId: 's1', user: 'Carlos Silva', rating: 4, date: 'Há 1 semana', text: 'Comida boa, mas demorou um pouco na entrega.' },
+            { id: 'r3', storeId: 's2', user: 'Roberto N.', rating: 5, date: 'Ontem', text: 'Atendimento nota 10. O barbeiro entende demais de visagismo.' },
+            { id: 'r4', storeId: 's5', user: 'Camila P.', rating: 5, date: 'Há 4 horas', text: 'Sensacional as pizzas! Pedirei de novo.' },
+            { id: 'r5', storeId: 's7', user: 'Lucas (Dono do Bob)', rating: 5, date: 'Há 1 dia', text: 'O Bob voltou cheirosinho e com a gravatinha mais fofa. Recomendo.' },
+            { id: 'r6', storeId: 's6', user: 'Mariana', rating: 4, date: 'Há 2 semanas', text: 'Os preços de genéricos são bons mas dependendo do horário pode não ter delivery.' },
+            { id: 'r7', storeId: 's10', user: 'Juliana O.', rating: 5, date: 'Hoje', text: 'Banana super fresca e atendimento excelente.' }
+        ];
+
+        // ==========================================
+        // ICONS COMPONENT
+        // ==========================================
+        const Icon = ({ name, className = "w-5 h-5", strokeWidth = "2" }) => {
+            const icons = {
+                search: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />,
+                utensils: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} d="M20.5 3.5l-6 6m0 0l-6-6m6 6v13m-9-4.5a4.5 4.5 0 01-4.5-4.5V3h9v11.5a4.5 4.5 0 01-4.5 4.5zM19 3v8.5a4.5 4.5 0 01-9 0V3h9z" />, // approximated
+                scissors: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} d="M14 5l7 7m0 0l-7 7m7-7H3" />, // substituted with arrow for safety
+                'shopping-cart': <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />,
+                paw: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4z" />,
+                pill: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />,
+                wrench: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />,
+                star: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />,
+                arrowLeft: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} d="M10 19l-7-7m0 0l7-7m-7 7h18" />,
+                mapPin: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />,
+                whatsapp: <path fill="currentColor" stroke="none" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+            };
+            return (
+                <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {icons[name] || icons.search}
+                </svg>
+            );
+        };
+
+        // ==========================================
+        // MAIN APPLICATION
+        // ==========================================
+        const App = () => {
+            // Routing State
+            const [view, setView] = useState('home'); // 'home', 'category', 'search', 'store'
+
+            // Selection State
+            const [selectedCategory, setSelectedCategory] = useState(null);
+            const [selectedStore, setSelectedStore] = useState(null);
+
+            // Search State
+            const [searchQuery, setSearchQuery] = useState('');
+            const [searchTab, setSearchTab] = useState('stores'); // 'stores' or 'products'
+
+            // Auth / User State
+            const [isLogged, setIsLogged] = useState(false);
+            const [showAuthModal, setShowAuthModal] = useState(false);
+            const [storeTab, setStoreTab] = useState('catalogo'); // 'catalogo' or 'reviews'
+
+            const goTo = (targetView) => {
+                setView(targetView);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            const openCategory = (cat) => {
+                setSelectedCategory(cat);
+                goTo('category');
+            };
+
+            const openStore = (storeId) => {
+                const store = STORES.find(s => s.id === storeId);
+                setSelectedStore(store);
+                setStoreTab('catalogo');
+                goTo('store');
+            };
+
+            const handleSearchSubmit = (e) => {
+                e.preventDefault();
+                if (searchQuery.trim()) {
+                    goTo('search');
+                }
+            };
+
+            const requireAuth = (callback) => {
+                if (isLogged) {
+                    callback();
+                } else {
+                    setShowAuthModal(true);
+                }
+            };
+
+            // ------------------------------------------
+            // RENDER: HOME
+            // ------------------------------------------
+            const renderHome = () => {
+                const featuredStores = STORES.filter(s => s.isFeatured);
+                const recentStores = STORES.filter(s => s.isRecent);
+
+                return (
+                    <main className="pb-24 animate-fade-in">
+                        {/* Header & Hero */}
+                        <div className="bg-indigo-600 px-5 pt-8 pb-10 rounded-b-[2.5rem] text-white shadow-lg overflow-hidden relative">
+                            <div className="absolute top-0 right-0 opacity-10 scale-150 transform translate-x-10 -translate-y-10">
+                                <Icon name="mapPin" className="w-64 h-64" />
+                            </div>
+                            <div className="relative z-10">
+                                <h1 className="text-3xl font-extrabold tracking-tight mb-2">Sua Cidade,<br /><span className="text-indigo-200">em um só lugar.</span></h1>
+                                <p className="text-indigo-100/80 mb-6 text-sm font-medium">Encontre lugares e chame pelo WhatsApp.</p>
+
+                                <form onSubmit={handleSearchSubmit} className="relative group">
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors">
+                                        <Icon name="search" />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar lojas, padarias, pizza..."
+                                        className="w-full bg-white text-slate-800 rounded-2xl py-4 pl-12 pr-4 outline-none font-medium shadow-xl shadow-indigo-900/20 focus:ring-4 ring-indigo-300 transition-all placeholder-slate-400"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        onFocus={() => { if (searchQuery) goTo('search'); }}
+                                    />
+                                </form>
+                            </div>
+                        </div>
+
+                        {/* Categories Grid */}
+                        <div className="px-5 mt-8">
+                            <h2 className="text-lg font-bold text-slate-800 mb-4 tracking-tight">Categorias</h2>
+                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                                {CATEGORIES.map(cat => (
+                                    <button
+                                        key={cat.id}
+                                        onClick={() => openCategory(cat)}
+                                        className="flex flex-col items-center gap-3 group active:scale-95 transition-transform"
+                                    >
+                                        <div className={`w-16 h-16 rounded-[1.25rem] flex items-center justify-center ${cat.color} group-hover:shadow-md transition-shadow`}>
+                                            <Icon name={cat.icon} className="w-7 h-7" />
+                                        </div>
+                                        <span className="text-xs font-semibold text-slate-600 text-center">{cat.name}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Featured Stores */}
+                        <div className="mt-10">
+                            <div className="px-5 flex items-end justify-between mb-4">
+                                <h2 className="text-lg font-bold text-slate-800 tracking-tight">Em Destaque</h2>
+                            </div>
+                            <div className="flex gap-4 overflow-x-auto px-5 pb-4 hide-scrollbar">
+                                {featuredStores.map(store => {
+                                    const cat = CATEGORIES.find(c => c.id === store.categoryId);
+                                    return (
+                                        <div key={store.id} onClick={() => openStore(store.id)} className="min-w-[260px] bg-white rounded-3xl p-3 shadow-sm border border-slate-100 cursor-pointer active:scale-[0.98] transition-transform">
+                                            <div className="relative h-32 rounded-2xl overflow-hidden mb-3 isolate bg-slate-100">
+                                                <img src={store.cover} className="w-full h-full object-cover" />
+                                                <div className="absolute top-2 left-2 bg-white/90 backdrop-blur text-[10px] font-black px-2 py-1 rounded-lg text-slate-700 shadow-sm">{cat.name}</div>
+                                            </div>
+                                            <div className="px-2">
+                                                <h3 className="font-bold text-slate-800 truncate mb-1">{store.name}</h3>
+                                                <div className="flex items-center justify-between text-xs">
+                                                    <span className="flex items-center gap-1 text-amber-500 font-bold"><Icon name="star" className="w-3 h-3" strokeWidth="3" /> {store.rating}</span>
+                                                    {store.isOpen
+                                                        ? <span className="text-emerald-500 font-bold flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Aberto</span>
+                                                        : <span className="text-slate-400 font-bold flex items-center gap-1">Fechado</span>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Recent Stores */}
+                        <div className="px-5 mt-6">
+                            <h2 className="text-lg font-bold text-slate-800 mb-4 tracking-tight">Novos no Guia</h2>
+                            <div className="flex flex-col gap-3">
+                                {recentStores.map(store => (
+                                    <div key={store.id} onClick={() => openStore(store.id)} className="bg-white rounded-2xl p-3 flex items-center gap-4 shadow-sm border border-slate-100 cursor-pointer active:bg-slate-50 transition-colors">
+                                        <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-slate-100">
+                                            <img src={store.logo} className="w-full h-full object-cover" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className="font-bold text-sm text-slate-800 line-clamp-1">{store.name}</h3>
+                                            <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{store.desc}</p>
+                                        </div>
+                                        <div className="flex items-center gap-1 text-amber-500 font-bold text-xs bg-amber-50 px-2 py-1 rounded-lg shrink-0">
+                                            <Icon name="star" className="w-3 h-3" /> {store.rating}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </main>
+                );
+            };
+
+            // ------------------------------------------
+            // RENDER: CATEGORY LIST
+            // ------------------------------------------
+            const renderCategory = () => {
+                if (!selectedCategory) return null;
+                const catStores = STORES.filter(s => s.categoryId === selectedCategory.id).sort((a, b) => b.rating - a.rating);
+
+                return (
+                    <main className="min-h-screen bg-slate-50 relative pb-20 animate-fade-in">
+                        <header className="glass-nav sticky top-0 z-40 px-5 pt-6 pb-4 border-b border-slate-200">
+                            <button onClick={() => goTo('home')} className="w-10 h-10 bg-white shadow-sm rounded-full flex items-center justify-center text-slate-600 mb-4 active:scale-90 transition-transform"><Icon name="arrowLeft" /></button>
+                            <div className="flex items-center gap-3">
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${selectedCategory.color} shadow-sm`}>
+                                    <Icon name={selectedCategory.icon} className="w-6 h-6" />
+                                </div>
+                                <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">{selectedCategory.name}</h1>
+                            </div>
+                        </header>
+
+                        <div className="px-5 pt-6">
+                            <p className="text-sm font-bold text-slate-500 mb-4">{catStores.length} estabelecimento(s) encontrado(s)</p>
+                            <div className="flex flex-col gap-4">
+                                {catStores.map(store => (
+                                    <div key={store.id} onClick={() => openStore(store.id)} className="bg-white rounded-[1.5rem] p-4 shadow-sm border border-slate-100 flex gap-4 cursor-pointer active:scale-[0.98] transition-transform">
+                                        <div className="relative w-20 h-20 rounded-2xl overflow-hidden shrink-0 border border-slate-100 isolate">
+                                            <img src={store.logo} className="w-full h-full object-cover" />
+                                            {store.isOpen && <div className="absolute bottom-0 left-0 right-0 bg-emerald-500 text-white text-[8px] font-black uppercase text-center py-0.5">Aberto</div>}
+                                            {!store.isOpen && <div className="absolute bottom-0 left-0 right-0 bg-slate-500 text-white text-[8px] font-black uppercase text-center py-0.5">Fechado</div>}
+                                        </div>
+                                        <div className="flex-1 flex flex-col justify-center">
+                                            <h3 className="font-extrabold text-slate-800 text-lg leading-tight mb-1">{store.name}</h3>
+                                            <div className="flex items-center gap-2 text-xs font-medium text-slate-500 mb-2">
+                                                <span className="flex items-center gap-1 text-amber-500 font-bold"><Icon name="star" className="w-3 h-3" /> {store.rating}</span>
+                                                <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                                                <span className="truncate">{store.address}</span>
+                                            </div>
+                                            <p className="text-[11px] text-slate-400 line-clamp-1">{store.desc}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </main>
+                );
+            };
+
+            // ------------------------------------------
+            // RENDER: SEARCH HYBRID
+            // ------------------------------------------
+            const renderSearch = () => {
+                const term = searchQuery.toLowerCase();
+                const matchedStores = STORES.filter(s => s.name.toLowerCase().includes(term) || s.desc.toLowerCase().includes(term));
+                const matchedProducts = PRODUCTS.filter(p => p.name.toLowerCase().includes(term) || p.desc.toLowerCase().includes(term));
+
+                return (
+                    <main className="min-h-screen bg-white pb-20 animate-fade-in relative">
+                        <header className="sticky top-0 z-40 bg-white px-5 pt-6 pb-2 shadow-sm border-b border-slate-100">
+                            <div className="flex items-center gap-3 mb-4">
+                                <button onClick={() => goTo('home')} className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-600 active:scale-90 transition-transform shrink-0"><Icon name="arrowLeft" /></button>
+                                <div className="relative flex-1">
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icon name="search" className="w-4 h-4" /></div>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-10 pr-4 outline-none font-medium text-sm focus:border-indigo-400 focus:bg-white transition-colors"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        autoFocus
+                                    />
+                                    {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs p-1">✕</button>}
+                                </div>
+                            </div>
+
+                            <div className="flex gap-6 mt-2 relative">
+                                <button
+                                    onClick={() => setSearchTab('stores')}
+                                    className={`pb-3 text-sm font-bold transition-colors ${searchTab === 'stores' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-500'}`}
+                                >
+                                    Lojas ({matchedStores.length})
+                                </button>
+                                <button
+                                    onClick={() => setSearchTab('products')}
+                                    className={`pb-3 text-sm font-bold transition-colors ${searchTab === 'products' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-500'}`}
+                                >
+                                    Produtos ({matchedProducts.length})
+                                </button>
+                            </div>
+                        </header>
+
+                        <div className="px-5 pt-6 bg-slate-50 min-h-screen">
+                            {searchTab === 'stores' && (
+                                <div className="flex flex-col gap-4">
+                                    {matchedStores.length === 0 ? <p className="text-slate-400 text-center mt-10">Nenhuma loja encontrada.</p> : null}
+                                    {matchedStores.map(store => (
+                                        <div key={store.id} onClick={() => openStore(store.id)} className="bg-white rounded-[1.5rem] p-4 shadow-sm border border-slate-100 flex gap-4 cursor-pointer">
+                                            <div className="w-16 h-16 rounded-2xl overflow-hidden shrink-0 border border-slate-100">
+                                                <img src={store.logo} className="w-full h-full object-cover" />
+                                            </div>
+                                            <div className="flex-1 flex flex-col justify-center">
+                                                <h3 className="font-extrabold text-slate-800 mb-1">{store.name}</h3>
+                                                <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                                                    <span className="text-amber-500 font-bold"><Icon name="star" className="w-3 h-3 inline pb-0.5" /> {store.rating}</span>
+                                                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                                                    <span>{store.isOpen ? <span className="text-emerald-500 font-bold">Aberto</span> : 'Fechado'}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {searchTab === 'products' && (
+                                <div className="flex flex-col gap-4">
+                                    {matchedProducts.length === 0 ? <p className="text-slate-400 text-center mt-10">Nenhum produto encontrado.</p> : null}
+                                    {matchedProducts.map(prod => {
+                                        const store = STORES.find(s => s.id === prod.storeId);
+                                        return (
+                                            <div key={prod.id} className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex gap-4">
+                                                <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-slate-50 isolate">
+                                                    <img src={prod.image} className="w-full h-full object-cover" />
+                                                </div>
+                                                <div className="flex-1 flex flex-col justify-between py-1">
+                                                    <div>
+                                                        <h4 className="font-bold text-slate-800 text-sm leading-tight line-clamp-2">{prod.name}</h4>
+                                                        <div className="text-[10px] items-center text-slate-500 mt-1 cursor-pointer hover:text-indigo-500 transition-colors" onClick={() => openStore(store.id)}>
+                                                            Vendido por <span className="font-bold underline">{store.name}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-lg font-black text-indigo-600">R$ {prod.price.toFixed(2).replace('.', ',')}</div>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </main>
+                );
+            };
+
+            // ------------------------------------------
+            // RENDER: STORE PROFILE (PWA CORE)
+            // ------------------------------------------
+            const renderStore = () => {
+                if (!selectedStore) return null;
+                const storeProducts = PRODUCTS.filter(p => p.storeId === selectedStore.id);
+                const storeReviews = REVIEWS.filter(r => r.storeId === selectedStore.id);
+                const cat = CATEGORIES.find(c => c.id === selectedStore.categoryId);
+
+                return (
+                    <main className="min-h-screen bg-slate-50 pb-24 animate-fade-in">
+                        {/* Action Nav Overlay */}
+                        <div className="fixed top-0 left-0 right-0 z-50 p-5 flex justify-between items-center pointer-events-none">
+                            <button onClick={() => goTo('home')} className="w-10 h-10 bg-white/30 backdrop-blur-md rounded-full shadow-lg flex items-center justify-center text-white pointer-events-auto active:scale-90 transition-transform">
+                                <Icon name="arrowLeft" />
+                            </button>
+                        </div>
+
+                        {/* Cinematic Cover */}
+                        <div className="h-64 relative isolate bg-slate-900 border-b border-white/10">
+                            <img src={selectedStore.cover} className="absolute inset-0 w-full h-full object-cover opacity-60" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent"></div>
+                        </div>
+
+                        <div className="relative px-5 pb-6 -mt-16 z-10 border-b border-slate-200 bg-white rounded-t-3xl pt-16">
+                            {/* Floating Logo */}
+                            <div className="absolute -top-12 left-5 w-24 h-24 bg-white rounded-[2rem] p-1 shadow-xl border border-slate-100">
+                                <div className="w-full h-full rounded-[1.75rem] overflow-hidden bg-slate-50">
+                                    <img src={selectedStore.logo} className="w-full h-full object-cover" />
+                                </div>
+                            </div>
+
+                            {/* Badges Right */}
+                            <div className="absolute top-4 right-5 text-right">
+                                <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black shadow-sm ${selectedStore.isOpen ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                                    {selectedStore.isOpen ? <><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Aberto Agora</> : 'Fechado'}
+                                </div>
+                            </div>
+
+                            <div className="mt-2">
+                                <div className="text-xs font-bold text-indigo-500 mb-1 tracking-widest uppercase">{cat.name}</div>
+                                <h1 className="text-3xl font-black text-slate-900 leading-tight mb-2 tracking-tight">{selectedStore.name}</h1>
+                                <p className="text-sm text-slate-500 mb-4 font-medium leading-relaxed">{selectedStore.desc}</p>
+
+                                <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-slate-600 mb-6 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                                    <div className="flex items-center gap-1.5 text-amber-500 font-extrabold"><Icon name="star" className="w-4 h-4" /> {selectedStore.rating}</div>
+                                    <div className="w-1 h-1 bg-slate-300 rounded-full"></div>
+                                    <div className="flex items-center gap-1.5 text-slate-500"><Icon name="mapPin" className="w-4 h-4 text-slate-400" /> {selectedStore.address}</div>
+                                </div>
+
+                                {/* MASSIVE WHATSAPP CTA */}
+                                <a
+                                    href={`https://wa.me/${selectedStore.whatsapp}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="w-full bg-[#25D366] hover:bg-[#1EBE5A] text-white py-4 rounded-2xl font-extrabold text-lg shadow-lg shadow-green-500/30 flex items-center justify-center gap-3 transition-colors active:scale-[0.98]"
+                                >
+                                    <span className="w-6 h-6"><Icon name="whatsapp" /></span>
+                                    Chamar no WhatsApp
+                                </a>
+                            </div>
+                        </div>
+
+                        {/* Store Tabs */}
+                        <div className="sticky top-0 z-30 bg-white border-b border-slate-200 px-5 flex gap-6 pt-4">
+                            <button
+                                onClick={() => setStoreTab('catalogo')}
+                                className={`pb-4 text-sm font-bold transition-colors relative ${storeTab === 'catalogo' ? 'text-indigo-600' : 'text-slate-500'}`}
+                            >
+                                Catálogo
+                                {storeTab === 'catalogo' && <div className="absolute bottom-0 left-0 right-0 h-1bg-indigo-600 rounded-t-full"></div>}
+                                {storeTab === 'catalogo' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-600 rounded-t-full"></div>}
+                            </button>
+                            <button
+                                onClick={() => setStoreTab('reviews')}
+                                className={`pb-4 text-sm font-bold transition-colors relative ${storeTab === 'reviews' ? 'text-indigo-600' : 'text-slate-500'}`}
+                            >
+                                Avaliações ({storeReviews.length})
+                                {storeTab === 'reviews' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-600 rounded-t-full"></div>}
+                            </button>
+                        </div>
+
+                        {/* Store Tab Content */}
+                        <div className="px-5 pt-6 relative min-h-[300px]">
+                            {storeTab === 'catalogo' && (
+                                <div className="flex flex-col gap-5 animate-fade-in">
+                                    {storeProducts.length === 0 ? <p className="text-slate-400 text-center mt-10 font-medium">Nenhum produto cadastrado.</p> : null}
+                                    {storeProducts.map(prod => (
+                                        <div key={prod.id} className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex gap-4 active:bg-slate-50 transition-colors cursor-pointer">
+                                            <div className="flex-1 flex flex-col pt-1">
+                                                <h4 className="font-extrabold text-slate-800 text-base leading-tight mb-1 pr-2">{prod.name}</h4>
+                                                <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-3 pr-4">{prod.desc}</p>
+                                                <div className="mt-auto text-lg font-black text-indigo-600">R$ {prod.price.toFixed(2).replace('.', ',')}</div>
+                                            </div>
+                                            <div className="w-28 h-28 rounded-2xl overflow-hidden shrink-0 bg-slate-50 shadow-inner isolate border border-slate-100">
+                                                <img src={prod.image} className="w-full h-full object-cover" />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {storeTab === 'reviews' && (
+                                <div className="flex flex-col gap-5 animate-fade-in">
+                                    <div className="bg-indigo-50 border border-indigo-100 rounded-3xl p-6 text-center shadow-sm">
+                                        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-amber-500 mx-auto mb-3 shadow-md">
+                                            <Icon name="star" className="w-8 h-8" />
+                                        </div>
+                                        <h3 className="font-extrabold text-slate-800 text-xl mb-1">{selectedStore.rating} de 5</h3>
+                                        <p className="text-xs text-slate-500 font-medium mb-4">Baseado em {storeReviews.length} avaliações</p>
+                                        <button
+                                            onClick={() => requireAuth(() => alert('Logado! Abrir tela de rating.'))}
+                                            className="w-full bg-slate-900 text-white font-bold py-3.5 rounded-xl shadow-lg active:scale-95 transition-transform"
+                                        >
+                                            Escrever uma Avaliação
+                                        </button>
+                                    </div>
+
+                                    <div className="flex flex-col gap-4 mt-2">
+                                        {storeReviews.map(rev => (
+                                            <div key={rev.id} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
+                                                <div className="flex justify-between items-center mb-3">
+                                                    <span className="font-bold text-slate-800">{rev.user}</span>
+                                                    <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">{rev.date}</span>
+                                                </div>
+                                                <div className="flex text-amber-500 gap-0.5 mb-3">
+                                                    {[...Array(5)].map((_, i) => (
+                                                        <Icon key={i} name="star" className={`w-3.5 h-3.5 ${i < rev.rating ? 'text-amber-500' : 'text-slate-200'}`} />
+                                                    ))}
+                                                </div>
+                                                <p className="text-sm text-slate-600 leading-relaxed font-medium">{rev.text}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </main>
+                );
+            };
+
+            // ------------------------------------------
+            // RENDER: AUTH MODAL
+            // ------------------------------------------
+            const renderAuthModal = () => {
+                if (!showAuthModal) return null;
+                return (
+                    <div className="fixed inset-0 z-[100] flex justify-center items-end bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+                        <div className="w-full max-w-md bg-white rounded-t-[3rem] p-8 shadow-2xl animate-slide-up pb-12">
+                            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-8"></div>
+
+                            <h2 className="text-2xl font-black text-slate-900 mb-2">Faça Login</h2>
+                            <p className="text-slate-500 text-sm font-medium mb-8">Para avaliar estabelecimentos, precisamos saber quem você é.</p>
+
+                            <form onSubmit={(e) => { e.preventDefault(); setIsLogged(true); setShowAuthModal(false); }} className="flex flex-col gap-4">
+                                <input required type="text" placeholder="Seu nome" className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl font-medium focus:border-indigo-500 focus:ring-4 ring-indigo-500/20 outline-none transition-all" />
+                                <input required type="email" placeholder="E-mail" className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl font-medium focus:border-indigo-500 focus:ring-4 ring-indigo-500/20 outline-none transition-all" />
+                                <input required type="password" placeholder="Senha" className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl font-medium focus:border-indigo-500 focus:ring-4 ring-indigo-500/20 outline-none transition-all" />
+
+                                <div className="flex gap-4 mt-4">
+                                    <button type="button" onClick={() => setShowAuthModal(false)} className="flex-1 font-bold text-slate-500 py-4 bg-slate-100 rounded-2xl active:bg-slate-200 transition-colors">Voltar</button>
+                                    <button type="submit" className="flex-1 font-black text-white bg-indigo-600 py-4 rounded-2xl shadow-lg shadow-indigo-600/30 active:bg-indigo-700 transition-colors">Entrar</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="relative font-sans antialiased">
+                    {view === 'home' && renderHome()}
+                    {view === 'category' && renderCategory()}
+                    {view === 'search' && renderSearch()}
+                    {view === 'store' && renderStore()}
+
+                    {renderAuthModal()}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
