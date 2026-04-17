@@ -11,18 +11,22 @@ O aplicativo foi arquitetado em um **arquivo único (`index.html`)** com dados e
 O protótipo já conta com um roteamento em memória de três telas distintas (Single-Page App local):
 
 ### 1. Vitrine Comparativa (Home)
-- **Busca em Tempo Real**: Barra de pesquisa para encontrar produtos instantaneamente pelo nome.
+- **Busca Autocomplete Sensitiva**: Barra de pesquisa inteligente com *Dropdown* de sugestões em tempo real exibindo a miniatura e seção do produto ao digitar.
 - **Filtros por Categoria**: Navegação por tipos de comércio específicos (Farmácia, Padaria, Mercado).
-- **Ordenação Dinâmica**: Os resultados podem ser organizados tanto pelo **Melhor Preço** quanto pelo **Mais Próximo** (usando algoritmo de cálculo de distância do usuário).
-- **Destaque Visual de Economia**: Algoritmo global que varre os produtos das lojas concorrentes e estampa o highlight **"OFERTA"** ou a tag condicional **"O MELHOR PREÇO"** na melhor oportunidade matemática para o cliente.
+- **Ordenação Dinâmica**: Os resultados podem ser organizados tanto pelo **Melhor Preço** quanto pelo **Mais Próximo** (usando cálculo de distância simulada do usuário).
+- **Destaque Visual de Economia**: Algoritmo global que varre os produtos das lojas concorrentes e estampa o highlight **"OFERTA"** ou a tag condicional **"MElHOR PREÇO"** na melhor oportunidade matemática para o cliente.
 
-### 2. Tela de Detalhe de Produto (Marketplace Profile)
-- Inspirado no Mercado Livre (Buybox). Apresenta a foto maximizada do item, a loja padrão vencedora e informações gerais.
-- **Comparador Paralelo**: Exibe uma lista de todos os **"Outros vendedores"** contendo o exato mesmo produto, mostrando a diferença de preços.
+### 2. Gestão de Carrinho (Sidebar Inteligente)
+- **Micro-interações**: Sistema de "Toast Notifications" animados de sucesso e contador Badge (pulse logic) no Header ao separar itens.
+- **Listagem Rica (Mock Checkout)**: Drawer lateral limpo (esmaecendo o fundo) contendo minicards dos itens selecionados (Foto, Loja de Origem, Preço) e motor de cálculo matemático somando o Total dinamicamente.
 
-### 3. Tela da Loja (Store Profile)
-- Carrega um cabeçalho cinemático isolando o nome, foto, rating (estrelas) e custo de frete do Comércio escolhido.
-- Exibe o portfólio completo de mercadorias apenas desta loja na vitrine abaixo do cabeçalho.
+### 3. Tela de Detalhe de Produto (Marketplace Profile)
+- Inspirado na *Buybox* do Mercado Livre. Apresenta a foto maximizada do item, a loja padrão vencedora e informações gerais com CTA para o Carrinho.
+- **Comparador Paralelo**: Exibe uma escadinha em painel com os **"Outros vendedores"** apontando para o exato mesmo produto (sku) de concorrentes e suas diferenças de tarifa (Frete e Preço Base).
+
+### 4. Tela Escalonada da Loja (Store Profile)
+- Carrega um painel cabeçalho isolando a foto do estabelecimento, nota média de rating (estrelas) e Custo/Tempo de viagem estimado.
+- Roteamento visual para exibir exclusivamente as mercadorias vendidas e controladas pelo parceiro isolado.
 
 ---
 
